@@ -1,0 +1,10 @@
+**/build/
+**/.gradle/
+**/.idea/
+*.iml
+*.iws
+*.ipr
+.env
+.env.*
+!.env.example
+!greeting-api/gradle/wrapper/gradle-wrapper.jar

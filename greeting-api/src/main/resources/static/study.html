@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>스터디 참가 신청</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #182c2b; background: #f3f5f1; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1080px; margin: auto; padding: 48px 24px; }
+    header { margin-bottom: 32px; }
+    .eyebrow { color: #376d5b; font-size: 13px; font-weight: 700; letter-spacing: .12em; }
+    h1 { font-size: clamp(28px, 5vw, 42px); margin: 12px 0; }
+    h2 { font-size: 20px; margin: 0 0 16px; }
+    p { line-height: 1.7; color: #52615e; }
+    .forms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    section { background: white; border: 1px solid #dce3dc; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+    label { display: block; font-size: 14px; font-weight: 650; margin-bottom: 8px; }
+    input { width: 100%; padding: 12px; border: 1px solid #aabbb3; border-radius: 8px; font: inherit; }
+    button { padding: 12px 18px; border: 0; border-radius: 8px; background: #225b48; color: white; font: inherit; font-weight: 650; cursor: pointer; }
+    form button { width: 100%; margin-top: 16px; }
+    button:hover { background: #174333; }
+    button:disabled { opacity: .55; cursor: wait; }
+    :focus-visible { outline: 3px solid #d59d38; outline-offset: 3px; }
+    .hint { font-size: 13px; margin: 12px 0 0; }
+    .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .section-heading h2 { margin: 0; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.8 ui-monospace, monospace; margin: 0; }
+    #response { padding: 16px; background: #edf4ef; border-radius: 8px; }
+    #participants { min-height: 90px; }
+    #list-status { font-size: 13px; }
+    details { margin-top: 20px; }
+    summary { cursor: pointer; font-weight: 650; }
+    #history { max-height: 340px; overflow: auto; margin-top: 16px; padding: 16px; background: #f5f6f3; border-radius: 8px; }
+    @media (max-width: 760px) { .forms { grid-template-columns: 1fr; gap: 0; } main { padding: 28px 16px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="eyebrow">SPRING BOOT &amp; AI · STUDY</span>
+    <h1>함께 배우는 스터디</h1>
+    <p>참가 신청부터 대기, 취소와 정원 변경까지 한곳에서 관리하세요.</p>
+  </header>
+
+  <div class="forms">
+    <section>
+      <h2>01 · 참가 신청</h2>
+      <form data-endpoint="/study/participants" data-key="name">
+        <label for="name">참가자 이름</label>
+        <input id="name" name="name" type="text" placeholder="홍길동" autocomplete="name">
+        <button type="submit">참가 신청</button>
+      </form>
+      <p class="hint">정원이 차면 대기자로 등록됩니다. 결과의 id를 확인하세요.</p>
+    </section>
+    <section>
+      <h2>02 · 신청 취소</h2>
+      <form data-endpoint="/study/cancel" data-key="memberId">
+        <label for="memberId">취소할 참가자 id</label>
+        <input id="memberId" name="memberId" type="text" placeholder="예: 1" autocomplete="off">
+        <button type="submit">신청 취소</button>
+      </form>
+      <p class="hint">신청 결과나 명단에 표시된 id를 사용하세요.</p>
+    </section>
+    <section>
+      <h2>03 · 정원 변경</h2>
+      <form data-endpoint="/study/capacity" data-key="capacity">
+        <label for="capacity">새 정원 (1~10명)</label>
+        <input id="capacity" name="capacity" type="text" placeholder="예: 5" autocomplete="off">
+        <button type="submit">정원 변경</button>
+      </form>
+      <p class="hint">정원을 늘리면 대기자가 신청 순서대로 승격됩니다.</p>
+    </section>
+  </div>
+
+  <section aria-labelledby="result-heading">
+    <h2 id="result-heading">요청 결과</h2>
+    <pre id="response" role="status" aria-live="polite">신청·취소·정원 변경 결과가 여기에 표시됩니다.</pre>
+  </section>
+
+  <section aria-labelledby="list-heading">
+    <div class="section-heading">
+      <h2 id="list-heading">참가 명단</h2>
+      <button id="refresh" type="button">명단 새로고침</button>
+    </div>
+    <p id="list-status" role="status">명단을 불러오는 중입니다.</p>
+    <pre id="participants">조회 대기 중</pre>
+  </section>
+
+  <section>
+    <h2>QA 확인 도구</h2>
+    <p class="hint">빈 값·공백·문자·범위 밖 숫자도 그대로 전송할 수 있습니다. 브라우저 개발자 도구의 Network에서 요청과 응답을 함께 확인하세요. 누락 테스트는 아래 옵션을 사용하세요.</p>
+    <label style="margin-top:16px"><input id="omit" type="checkbox" style="width:auto"> 다음 POST 요청에서 입력 키를 보내지 않기</label>
+    <details>
+      <summary>요청·응답 기록 보기 (최근 30건)</summary>
+      <pre id="history">아직 요청 기록이 없습니다.</pre>
+    </details>
+  </section>
+</main>
+<script>
+  const responseView = document.querySelector('#response');
+  const participantsView = document.querySelector('#participants');
+  const listStatus = document.querySelector('#list-status');
+  const refreshButton = document.querySelector('#refresh');
+  const omitInput = document.querySelector('#omit');
+  const records = [];
+  let busy = false;
+
+  function record(method, path, body, status, text) {
+    records.unshift(`${new Date().toLocaleTimeString('ko-KR')} · ${method} ${path}\n요청: ${body || '(본문 없음)'}\nHTTP: ${status}\n응답: ${text}`);
+    records.length = Math.min(records.length, 30);
+    document.querySelector('#history').textContent = records.join('\n\n────────────\n\n');
+  }
+
+  async function request(path, body) {
+    const method = body === undefined ? 'GET' : 'POST';
+    const options = body === undefined
+      ? { cache: 'no-store' }
+      : { method, headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body };
+    let response;
+    let text;
+    try {
+      response = await fetch(path, options);
+      text = await response.text();
+    } catch (error) {
+      record(method, path, body?.toString(), '연결 실패', error.message);
+      throw new Error('서버 응답을 확인할 수 없습니다. 연결을 확인한 뒤 명단을 새로고침하세요.');
+    }
+    record(method, path, body?.toString(), response.status, text);
+    if (!response.ok) throw new Error(`HTTP ${response.status}\n${text}`);
+    return text;
+  }
+
+  async function loadParticipants() {
+    listStatus.textContent = '명단을 불러오는 중입니다.';
+    try {
+      participantsView.textContent = await request('/study/participants');
+      listStatus.textContent = `마지막 조회: ${new Date().toLocaleTimeString('ko-KR')}`;
+    } catch (error) {
+      listStatus.textContent = `조회 실패: ${error.message} 기존 표시 내용은 최신이 아닐 수 있습니다.`;
+    }
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll('button').forEach(button => { button.disabled = value; });
+  }
+
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (busy) return;
+      const body = new URLSearchParams();
+      if (!omitInput.checked) body.set(form.dataset.key, form.elements.namedItem(form.dataset.key).value);
+      omitInput.checked = false;
+      setBusy(true);
+      responseView.textContent = '요청 중입니다…';
+      try {
+        responseView.textContent = await request(form.dataset.endpoint, body);
+      } catch (error) {
+        responseView.textContent = error.message;
+      } finally {
+        await loadParticipants();
+        setBusy(false);
+      }
+    });
+  });
+
+  refreshButton.addEventListener('click', async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await loadParticipants(); } finally { setBusy(false); }
+  });
+
+  setBusy(true);
+  loadParticipants().finally(() => setBusy(false));
+</script>
+</body>
+</html>

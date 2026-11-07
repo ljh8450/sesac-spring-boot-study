@@ -18,3 +18,9 @@ Issue와 PR 제목은 `[11/05][홍길동] 인사 API 구현`처럼 날짜·이�
 
 [수업 자료 모음](https://graygreat.github.io/mentoring-archive/)에서 날짜별 실습 요구사항과 제출 안내를 확인합니다.
 
+## 실습 구현과 QA 결과
+
+[인사 API·스터디 신청 실습 README](greeting-api/README.md)에 구현 내용, 실행 방법, API 사용법과 QA 결과를 정리했습니다. [상세 QA 체크리스트](docs/qa-checklist.md)에서 직접 실행할 순서와 항목별 결과를 확인할 수 있습니다.
+
+컨트롤러·서비스 직접 호출 검증은 43건 통과했으며, 인사 API는 별도로 HTTP 응답을 확인했습니다. 화면·Network 검증이 남아 전체 판정은 부분 통과입니다.
+
