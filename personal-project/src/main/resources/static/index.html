@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>아이템 컬렉션 | 상품 관리와 예산 추천</title>
+  <style>
+    :root { color-scheme: light; --bg:#f6f7fb; --surface:#fff; --ink:#172033; --muted:#687387; --line:#e3e7ef; --accent:#3c63e6; --accent-soft:#edf1ff; --danger:#bd3140; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; line-height:1.55; }
+    .container { width:min(1100px,calc(100% - 36px)); margin:0 auto; }
+    header { background:#fff; border-bottom:1px solid var(--line); }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:22px 0; }
+    .brand { font-size:21px; font-weight:800; letter-spacing:-.7px; }
+    .brand span { color:var(--accent); }
+    .status { color:var(--muted); font-size:13px; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#9ca3af; margin-right:6px; }
+    .dot.ok { background:#17a36b; }
+    main { padding:40px 0 70px; }
+    .intro { margin-bottom:26px; }
+    h1 { font-size:clamp(25px,4vw,35px); letter-spacing:-1.2px; margin:0 0 6px; }
+    .intro p { color:var(--muted); margin:0; }
+    .layout { display:grid; grid-template-columns:340px minmax(0,1fr); gap:20px; align-items:start; }
+    .stack { display:grid; gap:20px; }
+    .panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px; box-shadow:0 5px 22px rgba(25,40,80,.035); }
+    .panel h2 { font-size:18px; margin:0 0 5px; letter-spacing:-.4px; }
+    .desc { font-size:13px; color:var(--muted); margin:0 0 22px; }
+    label { display:block; font-size:13px; font-weight:650; margin-bottom:7px; }
+    input { width:100%; border:1px solid #d5dbe6; border-radius:9px; padding:12px 13px; font:inherit; font-size:14px; outline:none; background:#fff; }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+    .field { margin-bottom:16px; }
+    button { border:0; cursor:pointer; font:inherit; font-weight:650; border-radius:9px; padding:11px 16px; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .primary { color:#fff; background:var(--accent); }
+    .primary:hover:not(:disabled) { background:#2e52d0; }
+    .secondary { color:var(--accent); background:var(--accent-soft); }
+    .ghost { color:var(--muted); background:#f0f2f7; }
+    .full { width:100%; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:17px; }
+    .panel-head h2 { margin:0; }
+    .count { background:var(--accent-soft); color:var(--accent); border-radius:99px; padding:3px 10px; font-size:12px; font-weight:750; }
+    .items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .item { border:1px solid var(--line); border-radius:12px; padding:17px; min-width:0; }
+    .item small { color:var(--muted); font-size:12px; }
+    .item h3 { margin:6px 0 4px; font-size:16px; overflow-wrap:anywhere; }
+    .price { font-size:19px; font-weight:800; margin-bottom:12px; }
+    .item button { padding:7px 11px; font-size:12px; }
+    .empty { grid-column:1/-1; border:1px dashed #cdd5e3; border-radius:12px; text-align:center; padding:45px 16px; color:var(--muted); font-size:14px; }
+    .notice { margin-top:13px; font-size:13px; min-height:18px; color:var(--muted); }
+    .notice.error { color:var(--danger); }
+    .notice.success { color:#0c8459; }
+    .detail { background:#f7f9ff; border-radius:12px; padding:18px; margin-top:16px; }
+    .detail dl { display:grid; grid-template-columns:65px 1fr; gap:9px; margin:0; font-size:14px; }
+    .detail dt { color:var(--muted); }
+    .detail dd { margin:0; font-weight:650; overflow-wrap:anywhere; }
+    .actions { display:flex; gap:8px; align-items:center; }
+    @media (max-width:760px) { .layout { grid-template-columns:1fr; } .items { grid-template-columns:1fr; } .panel { padding:20px; } main { padding-top:26px; } }
+  </style>
+</head>
+<body>
+  <header><div class="container top"><div class="brand">Item<span>Collection</span></div><div class="status"><span id="statusDot" class="dot"></span><span id="apiStatus">API 연결 확인 중</span></div></div></header>
+  <main class="container">
+    <section class="intro"><h1>나만의 상품 컬렉션</h1><p>상품을 등록하고, 예산에 맞는 아이템을 추천받아 보세요.</p></section>
+    <div class="layout">
+      <div class="stack">
+        <section class="panel" aria-labelledby="registerTitle">
+          <h2 id="registerTitle">상품 등록</h2><p class="desc">새로운 상품을 컬렉션에 추가합니다.</p>
+          <form id="registerForm">
+            <div class="field"><label for="name">상품명</label><input id="name" name="name" type="text" placeholder="예: 무선 키보드" maxlength="100" required /></div>
+            <div class="field"><label for="price">가격 (원)</label><input id="price" name="price" type="number" min="0" max="2147483647" step="1" placeholder="예: 35000" required /></div>
+            <button class="primary full" id="registerButton" type="submit">+ 상품 등록하기</button>
+          </form><div id="registerNotice" class="notice" role="status" aria-live="polite"></div>
+        </section>
+        <section class="panel" aria-labelledby="recommendTitle">
+          <h2 id="recommendTitle">예산 맞춤 추천</h2><p class="desc">예산 이하의 상품을 가격 오름차순으로 최대 3개 추천합니다.</p>
+          <form id="recommendForm"><div class="field"><label for="budget">예산 (원)</label><input id="budget" type="number" min="0" max="2147483647" step="1" placeholder="예: 50000" required /></div><button class="primary full" id="recommendButton" type="submit">추천 상품 찾기</button></form>
+          <div id="recommendNotice" class="notice" role="status" aria-live="polite"></div>
+        </section>
+      </div>
+      <div class="stack">
+        <section class="panel" aria-labelledby="listTitle">
+          <div class="panel-head"><div class="actions"><h2 id="listTitle">전체 상품</h2><span id="itemCount" class="count">0개</span></div><button id="refreshButton" class="ghost" type="button">새로고침</button></div>
+          <div id="items" class="items"><div class="empty">상품을 불러오는 중입니다.</div></div>
+          <div id="listNotice" class="notice" role="status" aria-live="polite"></div>
+        </section>
+        <section class="panel" id="recommendPanel" hidden aria-labelledby="resultTitle"><div class="panel-head"><h2 id="resultTitle">추천 결과</h2><span id="recommendCount" class="count">0개</span></div><div id="recommendItems" class="items"></div></section>
+        <section class="panel" id="detailPanel" hidden aria-labelledby="detailTitle"><div class="panel-head"><h2 id="detailTitle">상품 상세 정보</h2><button id="closeDetail" class="ghost" type="button">닫기</button></div><div id="detailContent" class="detail"></div></section>
+      </div>
+    </div>
+  </main>
+  <script>
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const formatPrice = (value) => new Intl.NumberFormat('ko-KR').format(value) + '원';
+    const setNotice = (id, message, kind = '') => { const node = $(id); node.textContent = message; node.className = 'notice ' + kind; };
+    const setApiStatus = (ok) => { $('statusDot').classList.toggle('ok', ok); $('apiStatus').textContent = ok ? 'API 연결됨' : 'API 연결 실패'; };
+
+    async function request(path, options) {
+      let response;
+      try { response = await fetch(path, options); }
+      catch { throw new Error('서버에 연결할 수 없습니다. Spring Boot 실행 상태를 확인하세요.'); }
+      if (!response.ok) {
+        let detail = '';
+        try { const body = await response.json(); detail = body.message || body.detail || body.error || ''; } catch { /* no JSON error body */ }
+        throw new Error(`요청 실패 (HTTP ${response.status})${detail ? ': ' + detail : ''}`);
+      }
+      if (response.status === 204) return null;
+      const contentType = response.headers.get('content-type') || '';
+      return contentType.includes('application/json') ? response.json() : response.text();
+    }
+
+    function makeItemCard(item) {
+      const card = document.createElement('article'); card.className = 'item';
+      const id = document.createElement('small'); id.textContent = `상품 #${item.id ?? '-'}`;
+      const name = document.createElement('h3'); name.textContent = item.name ?? '(이름 없음)';
+      const price = document.createElement('div'); price.className = 'price'; price.textContent = formatPrice(item.price ?? 0);
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary'; button.textContent = '상세 보기';
+      button.addEventListener('click', () => showDetail(item.id));
+      card.append(id, name, price, button); return card;
+    }
+
+    function renderItems(targetId, items, emptyMessage) {
+      const target = $(targetId); target.replaceChildren();
+      if (!items.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = emptyMessage; target.append(empty); return; }
+      items.forEach(item => target.append(makeItemCard(item)));
+    }
+
+    async function loadItems() {
+      $('refreshButton').disabled = true; setNotice('listNotice', '');
+      try {
+        const items = await request('/items');
+        if (!Array.isArray(items)) throw new Error('서버 응답이 상품 배열이 아닙니다.');
+        renderItems('items', items, '등록된 상품이 없습니다. 왼쪽에서 첫 상품을 등록해 보세요.');
+        $('itemCount').textContent = `${items.length}개`; setApiStatus(true);
+      } catch (error) { setApiStatus(false); setNotice('listNotice', error.message, 'error'); renderItems('items', [], '상품을 불러올 수 없습니다.'); }
+      finally { $('refreshButton').disabled = false; }
+    }
+
+    async function showDetail(id) {
+      setNotice('listNotice', '');
+      try {
+        const item = await request(`/items/${encodeURIComponent(id)}`);
+        const dl = document.createElement('dl');
+        for (const [label, value] of [['ID', item.id], ['상품명', item.name], ['가격', formatPrice(item.price)]]) {
+          const dt = document.createElement('dt'); dt.textContent = label;
+          const dd = document.createElement('dd'); dd.textContent = value ?? '-'; dl.append(dt, dd);
+        }
+        $('detailContent').replaceChildren(dl); $('detailPanel').hidden = false;
+        $('detailPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+      } catch (error) { setNotice('listNotice', error.message, 'error'); }
+    }
+
+    $('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const name = $('name').value.trim(); const price = Number($('price').value);
+      if (!name || !Number.isSafeInteger(price) || price < 0) { setNotice('registerNotice', '상품명과 0원 이상의 정수 가격을 입력하세요.', 'error'); return; }
+      $('registerButton').disabled = true; setNotice('registerNotice', '등록 중...');
+      try {
+        await request('/items', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name, price }) });
+        $('registerForm').reset(); setNotice('registerNotice', '상품이 등록되었습니다.', 'success'); await loadItems();
+      } catch (error) { setNotice('registerNotice', error.message, 'error'); }
+      finally { $('registerButton').disabled = false; }
+    });
+
+    $('recommendForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); const budget = Number($('budget').value);
+      if (!Number.isSafeInteger(budget) || budget < 0) { setNotice('recommendNotice', '0원 이상의 정수 예산을 입력하세요.', 'error'); return; }
+      $('recommendButton').disabled = true; setNotice('recommendNotice', '추천 상품을 찾는 중...');
+      try {
+        const items = await request(`/recommend?budget=${encodeURIComponent(budget)}`);
+        if (!Array.isArray(items)) throw new Error('서버 응답이 상품 배열이 아닙니다.');
+        renderItems('recommendItems', items, '예산에 맞는 상품이 없습니다.');
+        $('recommendCount').textContent = `${items.length}개`; $('recommendPanel').hidden = false;
+        setNotice('recommendNotice', `${formatPrice(budget)} 이하 상품 ${items.length}개를 찾았습니다.`, 'success');
+      } catch (error) { $('recommendPanel').hidden = true; setNotice('recommendNotice', error.message, 'error'); }
+      finally { $('recommendButton').disabled = false; }
+    });
+
+    $('refreshButton').addEventListener('click', loadItems);
+    $('closeDetail').addEventListener('click', () => { $('detailPanel').hidden = true; });
+    loadItems();
+  </script>
+</body>
+</html>

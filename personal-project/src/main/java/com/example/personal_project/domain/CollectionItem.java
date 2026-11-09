@@ -1,19 +1,20 @@
 package com.example.personal_project.domain;
 
-public class CollectionItem {
-    private Long id;
-    private String name;
-    private Integer price;
+import com.example.personal_project.presentation.ItemDto;
 
-    public Long getId() {
-        return id;
+public record CollectionItem(Long id, String name, Integer price) {
+
+    public CollectionItem(Long id, String name, Integer price) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Integer getPrice() {
-        return price;
+    public static CollectionItem from(ItemDto itemDto) {
+        return new CollectionItem(
+                itemDto.id(),
+                itemDto.name(),
+                itemDto.price()
+        );
     }
 }
