@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
@@ -33,6 +34,6 @@ public class ListItemRepository implements ItemRepository {
         return collectionItems.stream()
                 .filter(collectionItem -> collectionItem.id().equals(id))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoSuchElementException("상품을 찾을 수 없습니다. ID: " + id));
     }
 }
