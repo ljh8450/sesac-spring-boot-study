@@ -20,7 +20,21 @@ public class ItemService {
     }
 
     public ItemDto add(ItemDto itemDto) {
-        CollectionItem collectionItem = CollectionItem.from(itemDto);
+        if (itemDto == null
+                || itemDto.name() == null
+                || itemDto.name().isBlank()) {
+            throw new IllegalArgumentException("상품명을 입력해야 합니다.");
+        }
+
+        if (itemDto.price() == null || itemDto.price() < 0) {
+            throw new IllegalArgumentException("가격은 0 이상이어야 합니다.");
+        }
+
+        CollectionItem collectionItem = new CollectionItem(
+                null,
+                itemDto.name().trim(),
+                itemDto.price()
+        );
         CollectionItem savedItem = itemRepository.add(collectionItem);
         ItemDto savedItemDto = ItemDto.from(savedItem);
         return savedItemDto;
