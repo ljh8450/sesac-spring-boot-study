@@ -55,7 +55,7 @@ public class ItemService {
 
     public List<CollectionItem> recommendItems(int budget) {
         if (budget < 0) {
-            throw new IllegalArgumentException("예산은 0보다 커야 합니다.");
+            throw new IllegalArgumentException("예산은 0 이상이어야 합니다.");
         }
 
         List<CollectionItem> recommend = itemRepository.findAll().stream()
