@@ -1,8 +1,9 @@
 package com.example.personal_project.application;
 
-import com.example.personal_project.domain.CollectionItem;
-import com.example.personal_project.infrastructure.ListItemRepository;
-import com.example.personal_project.presentation.ItemDto;
+import com.example.personal_project.domain.item.model.CollectionItem;
+import com.example.personal_project.domain.item.model.SourceType;
+import com.example.personal_project.infrastructure.repository.ListItemRepository;
+import com.example.personal_project.presentation.dto.item.ItemDto;
 import jdk.jfr.Description;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,11 +25,11 @@ class ItemServiceTest {
     }
 
     private ItemDto request(String name, Integer price) {
-        return ItemDto.from(new CollectionItem(null, name, price));
+        return ItemDto.from(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, null));
     }
 
     private CollectionItem seed(String name, Integer price) {
-        return listItemRepository.add(new CollectionItem(null, name, price));
+        return listItemRepository.add(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, null));
     }
 
     @Test
@@ -41,7 +42,7 @@ class ItemServiceTest {
         CollectionItem savedItem = listItemRepository.findAll().get(0);
         assertNotNull(savedItem.id());
         assertEquals("필통", savedItem.name());
-        assertEquals(300, savedItem.price());
+        assertEquals(300L, savedItem.price());
         assertEquals(savedItem, itemService.findById(savedItem.id()));
     }
 
@@ -103,7 +104,7 @@ class ItemServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("무료 샘플", result.get(0).name());
-        assertEquals(0, result.get(0).price());
+        assertEquals(0L, result.get(0).price());
     }
 
     @Test

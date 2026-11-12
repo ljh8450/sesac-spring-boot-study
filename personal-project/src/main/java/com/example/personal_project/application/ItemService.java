@@ -1,8 +1,9 @@
 package com.example.personal_project.application;
 
-import com.example.personal_project.domain.CollectionItem;
-import com.example.personal_project.domain.ItemRepository;
-import com.example.personal_project.presentation.ItemDto;
+import com.example.personal_project.domain.item.model.CollectionItem;
+import com.example.personal_project.domain.item.model.SourceType;
+import com.example.personal_project.domain.item.repository.ItemRepository;
+import com.example.personal_project.presentation.dto.item.ItemDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
+// TODO: 수동 상품 수정 기능의 범위를 확인하고 외부 상품 이름·가격 수정 금지 규칙과 구분한다.
 public class ItemService {
 
     private final ItemRepository itemRepository;
@@ -33,7 +35,10 @@ public class ItemService {
         CollectionItem collectionItem = new CollectionItem(
                 null,
                 itemDto.name().trim(),
-                itemDto.price()
+                itemDto.price(),
+                SourceType.MANUAL,
+                null,
+                null
         );
         CollectionItem savedItem = itemRepository.add(collectionItem);
         ItemDto savedItemDto = ItemDto.from(savedItem);
