@@ -19,7 +19,7 @@ public class ItemServiceIntegrationTest {
     @Test
     @Description("Service에 등록한 상품 추천 기능")
     void serviceIntegrationTest() {
-        itemService.add(ItemDto.from(new CollectionItem(null, "무료 샘플", 0L, SourceType.MANUAL, null, null)));
+        itemService.add(ItemDto.from(new CollectionItem(null, "무료 샘플", 0L, SourceType.MANUAL, null, 0)));
 
         CollectionItem savedItem = itemService.recommendItems(0).stream()
                 .filter(collectionItem -> collectionItem.name().equals("무료 샘플"))

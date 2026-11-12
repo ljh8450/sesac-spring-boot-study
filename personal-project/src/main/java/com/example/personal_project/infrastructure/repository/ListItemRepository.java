@@ -11,7 +11,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Repository
 public class ListItemRepository implements ItemRepository {
 
     private List<CollectionItem> collectionItems = new ArrayList<>();

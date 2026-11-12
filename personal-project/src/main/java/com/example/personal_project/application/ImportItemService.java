@@ -9,9 +9,6 @@ import com.example.personal_project.domain.product.model.PriceConverter;
 import com.example.personal_project.global.exception.DuplicationExternalProductException;
 import org.springframework.stereotype.Service;
 
-// TODO: ProductClient와 ItemRepository를 생성자 주입한다.
-// TODO: 외부 상세 조회 → 출처+외부 id 중복 확인 → 가격 환산 → 로컬 id로 저장을 조율한다.
-// TODO: 품절 상품도 가져오며 실패 시 저장 데이터를 바꾸지 않는다.
 @Service
 public class ImportItemService {
 

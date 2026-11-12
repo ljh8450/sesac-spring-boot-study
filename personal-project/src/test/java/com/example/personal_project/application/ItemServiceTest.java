@@ -25,7 +25,7 @@ class ItemServiceTest {
     }
 
     private ItemDto request(String name, Integer price) {
-        return ItemDto.from(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, null));
+        return ItemDto.from(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, 10));
     }
 
     private CollectionItem seed(String name, Integer price) {
@@ -43,6 +43,8 @@ class ItemServiceTest {
         assertNotNull(savedItem.id());
         assertEquals("필통", savedItem.name());
         assertEquals(300L, savedItem.price());
+        assertEquals(10, savedItem.stock());
+        assertEquals(10, itemService.findAll().getFirst().stock());
         assertEquals(savedItem, itemService.findById(savedItem.id()));
     }
 
@@ -62,6 +64,16 @@ class ItemServiceTest {
                 () -> itemService.add(request("필통", -1)));
 
         assertEquals(before, listItemRepository.findAll());
+    }
+
+    @Test
+    void rejectsMissingOrNegativeStockWithoutSaving() {
+        assertThrows(IllegalArgumentException.class,
+                () -> itemService.add(new ItemDto(null, "필통", 2000L, null)));
+        assertThrows(IllegalArgumentException.class,
+                () -> itemService.add(new ItemDto(null, "필통", 2000L, -1)));
+        assertTrue(listItemRepository.findAll().isEmpty());
+        assertEquals(0, itemService.add(new ItemDto(null, "필통", 2000L, 0)).stock());
     }
 
     @Test

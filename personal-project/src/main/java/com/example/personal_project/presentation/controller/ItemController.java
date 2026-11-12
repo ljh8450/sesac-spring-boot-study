@@ -28,9 +28,9 @@ public class ItemController {
     }
 
     @PostMapping("/items")
-    public String registerItem(@RequestBody ItemDto itemDto) {
-        itemService.add(itemDto);
-        return "등록";
+    @ResponseStatus(HttpStatus.CREATED)
+    public ItemDto registerItem(@RequestBody ItemDto itemDto) {
+        return itemService.add(itemDto);
     }
 
     @GetMapping("/items")

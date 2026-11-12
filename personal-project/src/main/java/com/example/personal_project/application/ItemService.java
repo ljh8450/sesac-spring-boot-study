@@ -32,13 +32,17 @@ public class ItemService {
             throw new IllegalArgumentException("가격은 0 이상이어야 합니다.");
         }
 
+        if (itemDto.stock() == null || itemDto.stock() < 0) {
+            throw new IllegalArgumentException("재고는 0 이상이어야 합니다.");
+        }
+
         CollectionItem collectionItem = new CollectionItem(
                 null,
                 itemDto.name().trim(),
                 itemDto.price(),
                 SourceType.MANUAL,
                 null,
-                null
+                itemDto.stock()
         );
         CollectionItem savedItem = itemRepository.add(collectionItem);
         ItemDto savedItemDto = ItemDto.from(savedItem);

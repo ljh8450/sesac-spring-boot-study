@@ -9,9 +9,21 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.dao.DataAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ErrorResponse> handleDatabase(DataAccessException exception) {
+        log.error("DB 작업 실패: 테이블 구조와 SQL을 확인하세요.", exception);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "DATABASE_ERROR",
+                "DB 작업에 실패했습니다. 서버 콘솔의 오류 로그를 확인해주세요.");
+    }
+
     private ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message) {
         return ResponseEntity.status(status).body(new ErrorResponse(code, message));
     }
