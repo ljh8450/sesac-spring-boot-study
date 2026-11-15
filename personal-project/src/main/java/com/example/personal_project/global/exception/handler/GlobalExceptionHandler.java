@@ -78,4 +78,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExternalApi(ExternalApiException exception) {
         return error(HttpStatus.BAD_GATEWAY, "EXTERNAL_API_FAILURE", "외부 상품 서비스의 응답을 처리할 수 없습니다.");
     }
+
+    @ExceptionHandler(NotFoundShortenException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundShortenUrlException(NotFoundShortenException exception) {
+        return error(HttpStatus.NOT_FOUND, "URL_NOT_FOUND", "단축 URL을 찾지 못햇습니다.");
+    }
+
+    @ExceptionHandler(LackOfShortenUrlKeyException.class)
+    public ResponseEntity<ErrorResponse> handleLackOfShortenUrlKeyException(LackOfShortenUrlKeyException exception) {
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "URL_CREATE_FAILED", "단축 URL 자원이 부족합니다.");
+    }
 }
