@@ -43,7 +43,7 @@ public class DatabaseProductRepository implements ItemRepository {
         var parameters = new MapSqlParameterSource()
                 .addValue("name", collectionItem.name())
                 .addValue("price", collectionItem.price())
-                .addValue("sourceType", collectionItem.sourceType())
+                .addValue("sourceType", collectionItem.sourceType().name())
                 .addValue("externalId", collectionItem.externalId())
                 .addValue("stock", collectionItem.stock())
                 .addValue("category", collectionItem.category())
