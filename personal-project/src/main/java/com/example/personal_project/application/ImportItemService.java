@@ -47,7 +47,9 @@ public class ImportItemService {
                 price,
                 sourceType,
                 product.externalId(),
-                product.stock()
+                product.stock(),
+                product.category(),
+                product.thumbnail()
         );
         return itemRepository.add(item);
     }

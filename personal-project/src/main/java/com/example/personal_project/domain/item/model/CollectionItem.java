@@ -6,7 +6,9 @@ public record CollectionItem(
         Long price,
         SourceType sourceType,
         Long externalId,
-        Integer stock
+        Integer stock,
+        String category,
+        String image
 ) {
     public CollectionItem withId(Long id) {
         return new CollectionItem(
@@ -15,7 +17,9 @@ public record CollectionItem(
                 price,
                 sourceType,
                 externalId,
-                stock
+                stock,
+                category,
+                image
         );
     }
 }

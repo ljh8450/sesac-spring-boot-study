@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
-// TODO: 수동 상품 수정 기능의 범위를 확인하고 외부 상품 이름·가격 수정 금지 규칙과 구분한다.
 public class ItemService {
 
     private final ItemRepository itemRepository;
@@ -42,7 +41,9 @@ public class ItemService {
                 itemDto.price(),
                 SourceType.MANUAL,
                 null,
-                itemDto.stock()
+                itemDto.stock(),
+                null,
+                null
         );
         CollectionItem savedItem = itemRepository.add(collectionItem);
         ItemDto savedItemDto = ItemDto.from(savedItem);

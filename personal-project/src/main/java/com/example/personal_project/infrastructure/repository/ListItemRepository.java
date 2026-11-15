@@ -18,14 +18,7 @@ public class ListItemRepository implements ItemRepository {
 
     @Override
     public CollectionItem add(CollectionItem item) {
-        CollectionItem savedItem = new CollectionItem(
-                sequence.getAndIncrement(),
-                item.name(),
-                item.price(),
-                item.sourceType(),
-                item.externalId(),
-                item.stock()
-        );
+        CollectionItem savedItem = item.withId(sequence.getAndIncrement());
 
         collectionItems.add(savedItem);
         return savedItem;

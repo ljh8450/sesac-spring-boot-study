@@ -13,7 +13,8 @@ Controller-Service-Repository 계층 구조를 적용하고, 순수 HTML·CSS·J
 | Build Tool | Gradle |
 | Frontend | HTML, CSS, JavaScript |
 | API 통신 | Fetch API |
-| 데이터 저장 | ArrayList 기반 In-Memory Repository |
+| 위시리스트 저장 | MySQL / Spring JDBC |
+| 장바구니 저장 | 메모리 저장소 |
 | Test | JUnit 5, Spring Boot Test |
 
 외부 프론트엔드 라이브러리 및 CDN을 사용하지 않았습니다.
@@ -22,15 +23,16 @@ Controller-Service-Repository 계층 구조를 적용하고, 순수 HTML·CSS·J
 
 ### 상품 등록
 
-- 상품명과 가격을 입력하여 상품 등록
-- `AtomicLong`을 활용한 상품 ID 자동 생성
-- 등록한 상품을 메모리 저장소에 저장
+- 상품명과 가격 및 재고를 입력하여 상품 등록
+- DB에서 생성한 로컬 ID를 `GeneratedKeyHolder`로 반환
+- `NamedParameterJdbcTemplate`으로 MySQL에 저장
 
 ### 상품 조회
 
 - 전체 상품 목록 조회
 - 상품 ID를 통한 상세 조회
-- Stream API를 활용한 ID 검색
+- SQL의 `WHERE id = :id`로 상세 조회
+- `ORDER BY id ASC`로 목록의 등록 순서 유지
 
 ### 예산별 상품 추천
 
@@ -61,7 +63,7 @@ personal-project/
 │   │   ├── product/model/           # 외부 상품 모델·가격 환산
 │   │   └── cart/{model,repository}/ # 장바구니 모델·규칙·저장소 인터페이스
 │   └── infrastructure/
-│       ├── repository/              # 메모리 저장소 구현
+│       ├── repository/              # 위시리스트 DB 저장소와 장바구니 메모리 저장소
 │       └── client/                  # 외부 Client와 전송 DTO
 ├── src/main/resources/static/index.html
 ├── src/test/java/
@@ -90,14 +92,24 @@ Content-Type: application/json
 ```json
 {
   "name": "키보드",
-  "price": 25000
+  "price": 25000,
+  "stock": 10
 }
 ```
 
-성공 응답:
+성공 응답은 201이며 다음은 예시입니다. ID는 DB에서 생성됩니다.
 
-```text
-등록
+```json
+{
+  "id": 1,
+  "name": "키보드",
+  "price": 25000,
+  "stock": 10,
+  "sourceType": "MANUAL",
+  "externalId": null,
+  "category": null,
+  "image": null
+}
 ```
 
 ### 예산별 추천 예시
@@ -162,7 +174,9 @@ macOS / Linux:
 - 원인: 상품 ID를 `ArrayList`의 인덱스로 사용하여 `IndexOutOfBoundsException` 발생
 - 해결: Stream API로 상품의 실제 ID를 비교하도록 변경
 
-### 최종 검증 결과
+### 메모리 저장소 단계의 검증 기록
+
+아래 결과는 DB 전환 전 기록입니다. 최신 DB 구현의 검증 결과와 구분합니다.
 
 | 검증 항목 | 결과    |
 |---|-------|
@@ -178,7 +192,78 @@ macOS / Linux:
 - **계층 분리:** Controller는 HTTP 요청 처리, Service는 비즈니스 로직, Repository는 데이터 저장 및 조회를 담당하도록 구성했습니다.
 - **의존성 주입:** `ItemRepository` 인터페이스를 사용하여 저장소 구현에 대한 의존성을 줄였습니다.
 - **Stream API:** 예산 필터링, 가격 정렬, 최대 3개 제한을 선언적으로 구현했습니다.
-- **메모리 저장소:** 데이터베이스 없이 기능을 구현했으며, 애플리케이션 재시작 시 저장된 데이터는 초기화됩니다.
+- **저장소 분리:** 위시리스트는 `DatabaseProductRepository`를 사용합니다. 장바구니는 `MemoryCartRepository`를 사용하며 재시작 시 초기화됩니다.
+
+### 위시리스트 DB 연동 적용 내용
+
+기존 `ItemRepository` 인터페이스를 유지하고 구현체를 Spring JDBC 기반으로 연결했습니다. JPA는 사용하지 않습니다.
+
+| 항목 | 코드에 반영한 내용 |
+| --- | --- |
+| 모델 | `CollectionItem`에 출처와 외부 ID 및 재고와 카테고리 및 이미지 보존 |
+| 외부 가져오기 | 외부 상세 조회와 가격 환산 이후 메타데이터를 전달하여 저장 |
+| 로컬 ID | 생성 키를 받아 `withId()`로 새 record 반환 |
+| 목록 | 전체 저장 필드 조회 후 `ORDER BY id ASC` 적용 |
+| 상세 | 로컬 ID로 조회하고 없는 상품은 404 반환 |
+| 중복 조회 | `source_type`과 `external_id` 조합으로 확인 |
+| DB 충돌 | 외부 상품 등록의 `DuplicateKeyException`을 중복 예외로 변환하여 409 반환 |
+| 응답 | 등록 결과와 목록 DTO에 저장된 메타데이터 포함 |
+
+외부 상품 조회 시 저장한 값을 반환합니다. 위시리스트 조회 과정에서 외부 API를 호출하여 자동 갱신하지 않습니다.
+
+#### 저장 컬럼과 SQL
+
+현재 저장소 코드가 사용하는 테이블은 `products`입니다. 다음은 코드가 요구하는 컬럼 구성입니다. 실제 DB의 자료형과 제약 적용 여부는 별도로 확인해야 합니다.
+
+| 컬럼 | 용도 |
+| --- | --- |
+| `id` | 자동 생성 로컬 상품 ID |
+| `name` | 상품 이름 |
+| `price` | 원화 정수 가격 |
+| `source_type` | MANUAL 또는 DUMMY_JSON |
+| `external_id` | 외부 상품 ID이며 수동 상품은 NULL |
+| `stock` | 상품 재고 |
+| `category` | 외부 상품 카테고리 |
+| `image` | 외부 thumbnail URL |
+
+등록 SQL:
+
+```sql
+INSERT INTO products
+    (name, price, source_type, external_id, stock, category, image)
+VALUES
+    (:name, :price, :sourceType, :externalId, :stock, :category, :image);
+```
+
+목록 SQL:
+
+```sql
+SELECT id, name, price, source_type, external_id, stock, category, image
+FROM products
+ORDER BY id ASC;
+```
+
+상세 조회는 같은 컬럼을 `WHERE id = :id` 조건으로 조회합니다. record 생성자는 `DataClassRowMapper`로 매핑합니다.
+
+자동 증가 ID의 오름차순을 등록 순서 기준으로 사용합니다. 추천은 이 목록을 가격순으로 안정 정렬하므로 같은 가격에서는 등록 순서를 유지합니다. 동시 트랜잭션의 커밋 순서를 기준으로 삼지는 않습니다.
+
+#### DB 실행 준비와 남은 확인
+
+`spring.datasource.url`과 `spring.datasource.username` 및 `spring.datasource.password`를 개발 DB에 맞게 설정합니다. JDBC와 MySQL 드라이버 의존성은 `build.gradle`에 추가되어 있습니다.
+
+```sql
+SHOW CREATE TABLE products;
+SHOW INDEX FROM products;
+```
+
+- 외부 식별자 조합의 UNIQUE 제약이 실제 DB에 있는지 확인해야 합니다. 이름 중복은 허용합니다.
+- 테이블 생성 SQL과 기존 DB 변경 SQL은 저장소에 아직 제공되지 않습니다.
+- 등록 파라미터의 `sourceType`은 현재 enum 객체를 전달합니다. 문자열 저장을 명확히 하려면 `.name()` 적용과 실제 DB 검증이 필요합니다.
+- `ListItemRepository`와 기존 테스트의 생성자 사용처를 확장한 record 필드에 맞춰 점검해야 합니다.
+- 현재 수동 상품 등록은 stock 누락을 400으로 거부합니다. 프론트 요청과 기존 API 호환성은 추가 점검이 필요합니다.
+- 수정 SQL은 저장소에 작성되어 있습니다. 수정 API 연결과 외부 상품 수정 제한은 완료로 판정하지 않습니다.
+- 장바구니 DB 저장은 아직 구현되지 않았습니다.
+- 최신 코드의 전체 테스트와 재시작 후 데이터 보존 및 DB UNIQUE 충돌 검증은 별도로 수행해야 합니다.
 
 
 ## 장바구니 API (9단계)
@@ -326,7 +411,7 @@ PERCENT10과 FIXED15000의 동률에서 PERCENT10을 선택합니다. 빈 장바
 | 모바일 레이아웃 | 390px viewport에서 단일 열 배치, 문서 가로 넘침 없음 |
 
 검증 화면: [데스크톱](../docs/qa/cart-desktop.png), [모바일](../docs/qa/cart-mobile.png).
-QA용 메모리 상품이 실행 중 서버에 남아 있으며 서버 재시작 시 초기화됩니다.
+위 QA는 DB 전환 전 메모리 저장소를 사용한 시점의 기록입니다.
 
 자동 테스트에는 최적 쿠폰의 배송비 포함 비교·동률 우선순위·빈 장바구니와
 최적 쿠폰 API 호출 시 저장 미호출 검증을 추가했습니다.
@@ -371,7 +456,7 @@ cd C:\sesac-spring-boot-study\personal-project
 Gradle 의존성이 이미 캐시되어 있으면 `--offline`을 붙여 실행할 수 있습니다.
 브라우저에서 `http://localhost:8080/`을 엽니다. index.html 파일을 직접 더블클릭하지 마세요.
 다른 서버가 8080을 사용하면 기존 서버를 실행한 터미널에서 Ctrl+C 후 다시 실행합니다.
-서버 재시작 시 메모리 위시리스트와 장바구니가 초기화됩니다. 화면 새로고침만으로는 초기화되지 않습니다.
+현재 위시리스트는 설정한 MySQL DB를 조회합니다. 장바구니는 서버 재시작 시 초기화됩니다. 화면 새로고침은 DB 데이터를 초기화하지 않습니다.
 프론트 변경 후 이전 화면이 남으면 Ctrl+F5로 새로고침합니다.
 
 개발자 도구(F12)의 Network에서 Fetch/XHR 필터를 켜면 아래 요청의 Status와 Response를 확인할 수 있습니다.
@@ -452,6 +537,6 @@ GET /cart/preview와 GET /cart/best-coupon을 반복해도 장바구니 행·수
 1. 개발자 도구의 기기 모드에서 390px 정도의 폭으로 확인합니다.
 2. 카드·수량 입력·쿠폰·최종 금액이 잘리지 않고 가로 스크롤 없이 표시되어야 합니다.
 3. 서버를 중지한 뒤 새로고침 버튼을 누르면 연결 실패 안내가 표시되어야 합니다.
-4. 서버를 재시작한 뒤 새로고침하면 빈 메모리 상태를 정상 조회해야 합니다.
+4. 서버를 재시작한 뒤 새로고침하면 DB에 저장한 위시리스트가 유지되어야 합니다. 장바구니는 빈 상태로 조회되어야 합니다.
 
 테스트 HTML 보고서: `personal-project/build/reports/tests/test/index.html`.
