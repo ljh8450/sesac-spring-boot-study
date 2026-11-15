@@ -39,7 +39,7 @@ class ItemImportControllerTest {
     @Test void importFailuresExposeRealHttpContractAndPreserveData() throws Exception {
         var client=mock(ProductClient.class);
         var repository=new ListItemRepository();
-        repository.add(new CollectionItem(null,"기존",1L,SourceType.MANUAL,null,null));
+        repository.add(new CollectionItem(null,"기존",1L,SourceType.MANUAL,null,null,null,null));
         var before=repository.findAll();
         var service=new ImportItemService(client,repository,new PriceConverter());
         var mvc=MockMvcBuilders.standaloneSetup(new ItemController(new ItemService(repository),service))

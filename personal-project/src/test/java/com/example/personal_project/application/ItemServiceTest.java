@@ -25,11 +25,11 @@ class ItemServiceTest {
     }
 
     private ItemDto request(String name, Integer price) {
-        return ItemDto.from(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, 10));
+        return ItemDto.from(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, 10, null, null));
     }
 
     private CollectionItem seed(String name, Integer price) {
-        return listItemRepository.add(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, null));
+        return listItemRepository.add(new CollectionItem(null, name, price == null ? null : price.longValue(), SourceType.MANUAL, null, null, null, null));
     }
 
     @Test
@@ -69,11 +69,11 @@ class ItemServiceTest {
     @Test
     void rejectsMissingOrNegativeStockWithoutSaving() {
         assertThrows(IllegalArgumentException.class,
-                () -> itemService.add(new ItemDto(null, "필통", 2000L, null)));
+                () -> itemService.add(new ItemDto(null, "필통", 2000L, null, SourceType.MANUAL, null, null, null)));
         assertThrows(IllegalArgumentException.class,
-                () -> itemService.add(new ItemDto(null, "필통", 2000L, -1)));
+                () -> itemService.add(new ItemDto(null, "필통", 2000L, -1, SourceType.MANUAL, null, null, null)));
         assertTrue(listItemRepository.findAll().isEmpty());
-        assertEquals(0, itemService.add(new ItemDto(null, "필통", 2000L, 0)).stock());
+        assertEquals(0, itemService.add(new ItemDto(null, "필통", 2000L, 0, SourceType.MANUAL, null, null, null)).stock());
     }
 
     @Test

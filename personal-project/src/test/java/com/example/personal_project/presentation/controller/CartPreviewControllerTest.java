@@ -21,7 +21,7 @@ class CartPreviewControllerTest {
         var items = new ListItemRepository();
         var repository = spy(new MemoryCartRepository());
         var service = new CartService(items, repository, new CartAmountCalculator());
-        Long id = items.add(new CollectionItem(null,"상품",110000L,SourceType.MANUAL,null,null)).id();
+        Long id = items.add(new CollectionItem(null,"상품",110000L,SourceType.MANUAL,null,null,null,null)).id();
         service.add(id,1);
         var before = service.findAll();
         clearInvocations(repository);
@@ -59,7 +59,7 @@ class CartPreviewControllerTest {
         for (String code : new String[]{"PERCENT10","FIXED15000",""}) {
             mvc.perform(get("/cart/preview").param("couponCode",code)).andExpect(status().isBadRequest());
         }
-        Long id = items.add(new CollectionItem(null,"상품",99999L,SourceType.MANUAL,null,null)).id();
+        Long id = items.add(new CollectionItem(null,"상품",99999L,SourceType.MANUAL,null,null,null,null)).id();
         service.add(id,1);
         var before=service.findAll();
         mvc.perform(get("/cart/preview").param("couponCode","FIXED15000"))

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CartTest {
     private CollectionItem item(long id,long price,Integer stock) {
         return new CollectionItem(id,"상품",price,stock==null?SourceType.MANUAL:SourceType.DUMMY_JSON,
-                stock==null?null:id,stock);
+                stock==null?null:id,stock,null,null);
     }
     @Test void fullCartStillAllowsExistingProductAndFreedSlotCanBeReused() {
         var cart=new Cart();

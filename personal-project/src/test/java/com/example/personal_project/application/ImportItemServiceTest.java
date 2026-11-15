@@ -13,7 +13,7 @@ class ImportItemServiceTest {
     @Test void externalFailuresNeverModifySavedItems() {
         var client=mock(ProductClient.class);
         var repository=new ListItemRepository();
-        repository.add(new CollectionItem(null,"기존 상품",1000L,SourceType.MANUAL,null,null));
+        repository.add(new CollectionItem(null,"기존 상품",1000L,SourceType.MANUAL,null,null,null,null));
         var before=repository.findAll();
         var service=new ImportItemService(client,repository,new PriceConverter());
         when(client.findById(1L)).thenThrow(new ExternalProductNotFoundException(1L));

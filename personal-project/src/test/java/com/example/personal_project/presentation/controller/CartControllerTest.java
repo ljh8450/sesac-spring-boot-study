@@ -30,7 +30,7 @@ class CartControllerTest {
 
     private Long seed(SourceType source, Integer stock) {
         return items.add(new CollectionItem(null, "상품", 10000L, source,
-                source == SourceType.MANUAL ? null : 10L, stock)).id();
+                source == SourceType.MANUAL ? null : 10L, stock, null, null)).id();
     }
 
     private void addItem(Long id, int quantity, int status) throws Exception {
