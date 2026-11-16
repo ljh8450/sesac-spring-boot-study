@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.stream.Stream;
 
@@ -181,6 +182,57 @@ class SimpleShortenUrlServiceTest {
                 () -> guardedService.generateShortenUrl(request(ORIGINAL_URL, code)));
 
         verify(guardedRepository, never()).saveShortenUrlIfAbsent(any(ShortenUrl.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("validOriginalUrlRequests")
+    void validOriginalUrlIsPreservedForAutomaticAndCustomCodes(String originalUrl, String code) {
+        var response = service.generateShortenUrl(request(originalUrl, code));
+
+        assertEquals(originalUrl, response.getOriginalUrl());
+        if (code != null) {
+            assertEquals(code, response.getShortenUrlKey());
+        }
+        ShortenUrl saved = repository.findShortenUrlByShortenUrlKey(response.getShortenUrlKey());
+        assertNotNull(saved);
+        assertEquals(originalUrl, saved.getOriginalUrl());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidOriginalUrlRequests")
+    void invalidOriginalUrlIsRejectedBeforeEitherRegistrationPath(String originalUrl, String code) {
+        ShortenUrlRepository guardedRepository = mock(ShortenUrlRepository.class);
+        var guardedService = new SimpleShortenUrlService(guardedRepository);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> guardedService.generateShortenUrl(request(originalUrl, code)));
+
+        verify(guardedRepository, never()).saveShortenUrlIfAbsent(any(ShortenUrl.class));
+    }
+
+    private static Stream<Arguments> validOriginalUrlRequests() {
+        String prefix = "https://example.com/";
+        return Stream.of(
+                        "https://example.technology/slides",
+                        "http://example.com/slides?week=3#summary",
+                        "HTTPS://example.com/slides",
+                        "https://example.com:8443/slides",
+                        "https://example.com:65535/slides",
+                        "https://example.com/a%20b?q=spring%20boot#part-1",
+                        prefix + "a".repeat(2048 - prefix.length()))
+                .flatMap(url -> Stream.of(Arguments.of(url, null), Arguments.of(url, "url-check")));
+    }
+
+    private static Stream<Arguments> invalidOriginalUrlRequests() {
+        String prefix = "https://example.com/";
+        return Stream.of(
+                        null, "", "   ", prefix + "a".repeat(2049 - prefix.length()),
+                        "ftp://example.com/slides", "javascript:alert(1)", "/slides/week03",
+                        "https:///slides", "https://user:password@example.com/slides",
+                        "https://@example.com/slides", "https://example.com:65536/slides",
+                        "https://example.com:70000/slides", "https://example.com/has space",
+                        "https://example.com/%ZZ", "http://", "//example.com/slides")
+                .flatMap(url -> Stream.of(Arguments.of(url, null), Arguments.of(url, "url-check")));
     }
 
     private static Stream<String> validCustomCodes() {

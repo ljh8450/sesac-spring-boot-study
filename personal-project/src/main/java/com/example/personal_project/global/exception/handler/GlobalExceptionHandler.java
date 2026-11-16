@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +32,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleInvalidInput(IllegalArgumentException exception) {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
+        String message = "입력값을 확인해주세요.";
+        var fieldError = exception.getBindingResult().getFieldError();
+        if (fieldError != null && fieldError.getDefaultMessage() != null) {
+            message = fieldError.getDefaultMessage();
+        }
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", message);
     }
 
     @ExceptionHandler(InvalidCouponException.class)
@@ -90,7 +101,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DuplicateShortenUrlCodeException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateShortenCodeException(LackOfShortenUrlKeyException exception) {
-        return error(HttpStatus.CONFLICT, "DUPLICATE_CODE", " 이미 사용 중인 단축 주소입니다.");
+    public ResponseEntity<ErrorResponse> handleDuplicateShortenCodeException(DuplicateShortenUrlCodeException exception) {
+        return error(HttpStatus.CONFLICT, "DUPLICATE_CODE", exception.getMessage());
     }
 }
