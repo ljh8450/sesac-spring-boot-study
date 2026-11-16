@@ -6,7 +6,7 @@ import com.example.personal_project.presentation.dto.url.ShortenUrlCreateRespons
 import com.example.personal_project.presentation.dto.url.ShortenUrlInformationDto;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,17 +32,18 @@ public class ShortenUrlRestController {
         return ResponseEntity.ok(shortenUrlCreateResponseDto);
     }
 
-    @GetMapping("/{shortenUrlKey}")
-    public ResponseEntity<?> redirectShortenUrl(
-            @PathVariable String shortenUrlKey
+    @GetMapping("/study/{code}")
+    public ResponseEntity<Void> redirectShortenUrl(
+            @PathVariable("code") String code
     ) throws URISyntaxException {
-        String originalUrl = simpleShortenUrlService.getOriginalUrlByShortenUrlKey(shortenUrlKey);
+        String originalUrl = simpleShortenUrlService.getOriginalUrlByShortenUrlKey(code);
 
         URI redirectUri = new URI(originalUrl);
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(redirectUri);
 
-        return new ResponseEntity<>(httpHeaders, HttpStatus.MOVED_PERMANENTLY);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(redirectUri)
+                .cacheControl(CacheControl.noStore())
+                .build();
     }
 
     @GetMapping("/shortenUrl/{shortenUrlKey}")
