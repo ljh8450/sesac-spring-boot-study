@@ -2,6 +2,7 @@ package com.example.personal_project.application;
 
 import com.example.personal_project.domain.ShortenUrl;
 import com.example.personal_project.domain.ShortenUrlRepository;
+import com.example.personal_project.global.exception.DuplicateShortenUrlCodeException;
 import com.example.personal_project.global.exception.LackOfShortenUrlKeyException;
 import com.example.personal_project.global.exception.NotFoundShortenException;
 import com.example.personal_project.infrastructure.repository.MapShortenUrlRepository;
@@ -9,6 +10,10 @@ import com.example.personal_project.presentation.dto.url.ShortenUrlCreateRequest
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -129,13 +134,76 @@ class SimpleShortenUrlServiceTest {
         assertEquals(ORIGINAL_URL, response.getOriginalUrl());
     }
 
+    @ParameterizedTest
+    @MethodSource("validCustomCodes")
+    void customCodeIsStoredAndReturnedAsRequested(String code) {
+        var response = service.generateShortenUrl(request(ORIGINAL_URL, code));
+
+        assertEquals(code, response.getShortenUrlKey());
+        assertEquals(ORIGINAL_URL, response.getOriginalUrl());
+        ShortenUrl saved = repository.findShortenUrlByShortenUrlKey(code);
+        assertNotNull(saved);
+        assertEquals(ORIGINAL_URL, saved.getOriginalUrl());
+        assertEquals(0L, saved.getRedirectCount().longValue());
+    }
+
+    @Test
+    void customCodeIsTrimmedBeforeStorageAndResponse() {
+        var response = service.generateShortenUrl(request(ORIGINAL_URL, "  week03-jpa  "));
+
+        assertEquals("week03-jpa", response.getShortenUrlKey());
+        assertNotNull(repository.findShortenUrlByShortenUrlKey("week03-jpa"));
+        assertNull(repository.findShortenUrlByShortenUrlKey("  week03-jpa  "));
+    }
+
+    @Test
+    void duplicateCustomCodePreservesOriginalUrlAndRedirectCount() {
+        String code = "week03-jpa";
+        service.generateShortenUrl(request(ORIGINAL_URL, code));
+        service.getOriginalUrlByShortenUrlKey(code);
+
+        assertThrows(DuplicateShortenUrlCodeException.class,
+                () -> service.generateShortenUrl(
+                        request("https://example.com/replacement", code)));
+
+        var information = service.getShortenUrlInformationByShortenUrlKey(code);
+        assertEquals(ORIGINAL_URL, information.getOriginalUrl());
+        assertEquals(1L, information.getRedirectCount().longValue());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidCustomCodes")
+    void invalidCustomCodeIsRejectedWithoutSaving(String code) {
+        ShortenUrlRepository guardedRepository = mock(ShortenUrlRepository.class);
+        var guardedService = new SimpleShortenUrlService(guardedRepository);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> guardedService.generateShortenUrl(request(ORIGINAL_URL, code)));
+
+        verify(guardedRepository, never()).saveShortenUrlIfAbsent(any(ShortenUrl.class));
+    }
+
+    private static Stream<String> validCustomCodes() {
+        return Stream.of("abc", "123", "week03-jpa", "a".repeat(40));
+    }
+
+    private static Stream<String> invalidCustomCodes() {
+        return Stream.of("", "   ", "ab", "a".repeat(41), "Week03", "-week03",
+                "week03-", "week--03", "week/03", "week_03", "회차03", "week 03");
+    }
+
     private void seed() {
         assertTrue(repository.saveShortenUrlIfAbsent(new ShortenUrl(ORIGINAL_URL, KEY)));
     }
 
     private ShortenUrlCreateRequestDto request() {
+        return request(ORIGINAL_URL, null);
+    }
+
+    private ShortenUrlCreateRequestDto request(String originalUrl, String code) {
         var request = mock(ShortenUrlCreateRequestDto.class);
-        when(request.getOriginalUrl()).thenReturn(ORIGINAL_URL);
+        when(request.getOriginalUrl()).thenReturn(originalUrl);
+        when(request.getCode()).thenReturn(code);
         return request;
     }
 }

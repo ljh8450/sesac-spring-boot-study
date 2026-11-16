@@ -88,4 +88,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleLackOfShortenUrlKeyException(LackOfShortenUrlKeyException exception) {
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "URL_CREATE_FAILED", "단축 URL 자원이 부족합니다.");
     }
+
+    @ExceptionHandler(DuplicateShortenUrlCodeException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateShortenCodeException(LackOfShortenUrlKeyException exception) {
+        return error(HttpStatus.CONFLICT, "DUPLICATE_CODE", " 이미 사용 중인 단축 주소입니다.");
+    }
 }

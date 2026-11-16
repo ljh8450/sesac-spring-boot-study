@@ -2,6 +2,7 @@ package com.example.personal_project.application;
 
 import com.example.personal_project.domain.ShortenUrl;
 import com.example.personal_project.domain.ShortenUrlRepository;
+import com.example.personal_project.global.exception.DuplicateShortenUrlCodeException;
 import com.example.personal_project.global.exception.LackOfShortenUrlKeyException;
 import com.example.personal_project.global.exception.NotFoundShortenException;
 import com.example.personal_project.presentation.dto.url.ShortenUrlCreateRequestDto;
@@ -10,10 +11,15 @@ import com.example.personal_project.presentation.dto.url.ShortenUrlInformationDt
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Pattern;
+
 @Service
 public class SimpleShortenUrlService {
 
     private ShortenUrlRepository shortenUrlRepository;
+
+    final int MAX_ATTEMPTS = 5;
+    private static final Pattern CUSTOM_CODE_PATTERN = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
 
     @Autowired
     SimpleShortenUrlService(ShortenUrlRepository shortenUrlRepository) {
@@ -24,7 +30,16 @@ public class SimpleShortenUrlService {
             ShortenUrlCreateRequestDto shortenUrlCreateRequestDto
     ) {
         String originalUrl = shortenUrlCreateRequestDto.getOriginalUrl();
-        final int MAX_ATTEMPTS = 5;
+        String requestedCode = shortenUrlCreateRequestDto.getCode();
+
+        if (requestedCode != null) {
+            return createWithCustomCode(originalUrl, requestedCode);
+        }
+
+        return createWithAutomaticCode(originalUrl);
+    }
+
+    private ShortenUrlCreateResponseDto createWithAutomaticCode(String originalUrl) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             String key = ShortenUrl.generateShortenUrlKey();
             ShortenUrl candidate = new ShortenUrl(originalUrl, key);
@@ -37,6 +52,28 @@ public class SimpleShortenUrlService {
         }
 
         throw new LackOfShortenUrlKeyException("URL 생성에 실패했습니다.");
+    }
+
+    private ShortenUrlCreateResponseDto createWithCustomCode(String originalUrl, String requestedCode) {
+        String code = requestedCode.trim();
+
+        if (code.length() < 3
+                || code.length() > 40
+                || !CUSTOM_CODE_PATTERN.matcher(code).matches()) {
+            throw new IllegalArgumentException(
+                    "단축 코드는 3~40자의 영문 소문자·숫자·하이픈으로 입력해주세요. "
+                            + "하이픈은 시작·끝 또는 연속해서 사용할 수 없습니다."
+            );
+        }
+
+        ShortenUrl candidate = new ShortenUrl(originalUrl, requestedCode);
+        boolean saved = shortenUrlRepository.saveShortenUrlIfAbsent(candidate);
+
+        if (!saved) {
+            throw new DuplicateShortenUrlCodeException("이미 사용 중인 단축 주소입니다.");
+        }
+
+        return new ShortenUrlCreateResponseDto(candidate);
     }
 
     private String getUniqueShortenUrlKEty() {
