@@ -8,6 +8,7 @@ import com.example.personal_project.infrastructure.repository.MapShortenUrlRepos
 import com.example.personal_project.presentation.dto.url.ShortenUrlCreateRequestDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -79,22 +80,57 @@ class SimpleShortenUrlServiceTest {
     }
 
     @Test
-    void fiveCollisionsFailWithoutSaving() {
+    void fiveCollisionsFailAfterFiveInsertAttempts() {
         ShortenUrlRepository occupiedRepository = mock(ShortenUrlRepository.class);
-        when(occupiedRepository.findShortenUrlByShortenUrlKey(anyString()))
-                .thenReturn(new ShortenUrl(ORIGINAL_URL, KEY));
+        when(occupiedRepository.saveShortenUrlIfAbsent(any(ShortenUrl.class)))
+                .thenReturn(false);
 
         var collisionService = new SimpleShortenUrlService(occupiedRepository);
 
         assertThrows(LackOfShortenUrlKeyException.class,
                 () -> collisionService.generateShortenUrl(request()));
 
-        verify(occupiedRepository, times(5)).findShortenUrlByShortenUrlKey(anyString());
-        verify(occupiedRepository, never()).saveShortenUrl(any(ShortenUrl.class));
+        verify(occupiedRepository, times(5))
+                .saveShortenUrlIfAbsent(any(ShortenUrl.class));
+    }
+
+    @Test
+    void registrationReturnsSuccessfullySavedCandidateAfterOneCollision() {
+        ShortenUrlRepository retryRepository = mock(ShortenUrlRepository.class);
+        when(retryRepository.saveShortenUrlIfAbsent(any(ShortenUrl.class)))
+                .thenReturn(false, true);
+        var retryService = new SimpleShortenUrlService(retryRepository);
+
+        var response = retryService.generateShortenUrl(request());
+
+        var candidates = ArgumentCaptor.forClass(ShortenUrl.class);
+        verify(retryRepository, times(2))
+                .saveShortenUrlIfAbsent(candidates.capture());
+        ShortenUrl savedCandidate = candidates.getAllValues().getLast();
+        assertEquals(savedCandidate.getShortenUrlKey(), response.getShortenUrlKey());
+        assertEquals(ORIGINAL_URL, savedCandidate.getOriginalUrl());
+        assertEquals(ORIGINAL_URL, response.getOriginalUrl());
+    }
+
+    @Test
+    void registrationCanSucceedOnFifthInsertAttempt() {
+        ShortenUrlRepository retryRepository = mock(ShortenUrlRepository.class);
+        when(retryRepository.saveShortenUrlIfAbsent(any(ShortenUrl.class)))
+                .thenReturn(false, false, false, false, true);
+        var retryService = new SimpleShortenUrlService(retryRepository);
+
+        var response = retryService.generateShortenUrl(request());
+
+        var candidates = ArgumentCaptor.forClass(ShortenUrl.class);
+        verify(retryRepository, times(5))
+                .saveShortenUrlIfAbsent(candidates.capture());
+        assertEquals(candidates.getAllValues().getLast().getShortenUrlKey(),
+                response.getShortenUrlKey());
+        assertEquals(ORIGINAL_URL, response.getOriginalUrl());
     }
 
     private void seed() {
-        repository.saveShortenUrl(new ShortenUrl(ORIGINAL_URL, KEY));
+        assertTrue(repository.saveShortenUrlIfAbsent(new ShortenUrl(ORIGINAL_URL, KEY)));
     }
 
     private ShortenUrlCreateRequestDto request() {

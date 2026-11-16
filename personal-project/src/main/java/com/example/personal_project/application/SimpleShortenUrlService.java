@@ -24,13 +24,19 @@ public class SimpleShortenUrlService {
             ShortenUrlCreateRequestDto shortenUrlCreateRequestDto
     ) {
         String originalUrl = shortenUrlCreateRequestDto.getOriginalUrl();
-        String shortenUrlKey = getUniqueShortenUrlKEty();
+        final int MAX_ATTEMPTS = 5;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            String key = ShortenUrl.generateShortenUrlKey();
+            ShortenUrl candidate = new ShortenUrl(originalUrl, key);
 
-        ShortenUrl shortenUrl = new ShortenUrl(originalUrl, shortenUrlKey);
-        shortenUrlRepository.saveShortenUrl(shortenUrl);
+            boolean saved = shortenUrlRepository.saveShortenUrlIfAbsent(candidate);
 
-        ShortenUrlCreateResponseDto shortenUrlCreateResponseDto = new ShortenUrlCreateResponseDto(shortenUrl);
-        return shortenUrlCreateResponseDto;
+            if (saved) {
+                return new ShortenUrlCreateResponseDto(candidate);
+            }
+        }
+
+        throw new LackOfShortenUrlKeyException("URL 생성에 실패했습니다.");
     }
 
     private String getUniqueShortenUrlKEty() {
@@ -58,12 +64,9 @@ public class SimpleShortenUrlService {
     }
 
     public String getOriginalUrlByShortenUrlKey(String shortenUrlKey) {
-        ShortenUrl shortenUrl = shortenUrlRepository.findShortenUrlByShortenUrlKey(shortenUrlKey);
+        ShortenUrl shortenUrl = shortenUrlRepository.increaseRedirectCount(shortenUrlKey);
 
         if (null == shortenUrl) throw new NotFoundShortenException("해당 URL이 등록되어있지 않습니다.");
-
-        shortenUrl.increaseRedirectCount();
-        shortenUrlRepository.saveShortenUrl(shortenUrl);
 
         String originalUrl = shortenUrl.getOriginalUrl();
 

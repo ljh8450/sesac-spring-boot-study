@@ -1,6 +1,7 @@
 package com.example.personal_project.domain;
 
 public interface ShortenUrlRepository {
-    void saveShortenUrl(ShortenUrl shortenUrl);
+    boolean saveShortenUrlIfAbsent(ShortenUrl shortenUrl);
     ShortenUrl findShortenUrlByShortenUrlKey(String shortenUrlKey);
+    ShortenUrl increaseRedirectCount(String shortenUrlKey);
 }
