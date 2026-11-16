@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 @RestController
+@org.springframework.context.annotation.Profile("textbook")
 public class ShortenUrlRestController {
 
     private SimpleShortenUrlService simpleShortenUrlService;

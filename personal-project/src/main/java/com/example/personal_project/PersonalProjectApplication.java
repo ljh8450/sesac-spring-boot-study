@@ -18,7 +18,9 @@ public class PersonalProjectApplication {
     @Bean
     public ApplicationRunner runner(DataSource datasource) {
         return args -> {
-            Connection connection = datasource.getConnection();
+            try (Connection connection = datasource.getConnection()) {
+                // 시작 시 연결을 확인하고 풀에 반환한다.
+            }
         };
     }
 

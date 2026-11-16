@@ -36,10 +36,13 @@ class ShortenUrlRestControllerTest {
 
     @BeforeEach
     void setUp() {
-        context = new AnnotationConfigApplicationContext(
+        context = new AnnotationConfigApplicationContext();
+        context.getEnvironment().setActiveProfiles("textbook");
+        context.register(
                 MapShortenUrlRepository.class,
                 SimpleShortenUrlService.class,
                 ShortenUrlRestController.class);
+        context.refresh();
         repository = context.getBean(MapShortenUrlRepository.class);
         mvc = MockMvcBuilders.standaloneSetup(context.getBean(ShortenUrlRestController.class))
                 .setControllerAdvice(new GlobalExceptionHandler())
