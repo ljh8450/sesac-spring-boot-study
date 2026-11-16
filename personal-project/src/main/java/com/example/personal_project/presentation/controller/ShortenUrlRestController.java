@@ -24,7 +24,7 @@ public class ShortenUrlRestController {
         this.simpleShortenUrlService = simpleShortenUrlService;
     }
 
-    @PostMapping(value = "/shortenUrl")
+    @PostMapping("/shortenUrl")
     public ResponseEntity<ShortenUrlCreateResponseDto> createShortenUrl(
             @Valid @RequestBody ShortenUrlCreateRequestDto shortenUrlCreateRequestDto
     ) {
@@ -32,7 +32,7 @@ public class ShortenUrlRestController {
         return ResponseEntity.ok(shortenUrlCreateResponseDto);
     }
 
-    @GetMapping(value = "/{shortenUrlKey}")
+    @GetMapping("/{shortenUrlKey}")
     public ResponseEntity<?> redirectShortenUrl(
             @PathVariable String shortenUrlKey
     ) throws URISyntaxException {
@@ -45,7 +45,7 @@ public class ShortenUrlRestController {
         return new ResponseEntity<>(httpHeaders, HttpStatus.MOVED_PERMANENTLY);
     }
 
-    @GetMapping(value = "/shortenUrl/{shortenUrlKey}")
+    @GetMapping("/shortenUrl/{shortenUrlKey}")
     public ResponseEntity<ShortenUrlInformationDto> getShortenUrlInformation(
             @PathVariable String shortenUrlKey
     ) {

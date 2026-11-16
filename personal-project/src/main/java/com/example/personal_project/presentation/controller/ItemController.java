@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-// TODO: ImportItemRequest를 받는 POST /items/import를 ImportItemService에 연결한다. 기존 /items·/recommend 계약은 유지한다.
 public class ItemController {
 
     private final ItemService itemService;
